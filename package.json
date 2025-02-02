@@ -16,5 +16,8 @@
     "url": "https://github.com/nithin-developer/YTAssist-AI/issues"
   },
   "homepage": "https://github.com/nithin-developer/YTAssist-AI#readme",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
 }

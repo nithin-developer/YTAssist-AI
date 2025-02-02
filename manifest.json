@@ -2,5 +2,45 @@
     "manifest_version": 3,
     "name": "YTAssist-AI",
     "version": "1.0",
-    "description": "AI-powered video analysis extension using Gemini API"
+    "description": "AI-powered video analysis extension using Gemini API",
+    "permissions": [
+        "activeTab",
+        "storage",
+        "scripting"
+    ],
+    "host_permissions": [
+        "https://*.youtube.com/*"
+    ],
+    "action": {
+        "default_icon": {
+            "16": "assets/icons/icon16.png",
+            "48": "assets/icons/icon48.png",
+            "128": "assets/icons/icon128.png"
+        },
+        "default_popup": "popup.html"
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://*.youtube.com/*"
+            ],
+            "css": [
+                "styles/style.css"
+            ]
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "styles/modal.css",
+                "components/*"
+            ],
+            "matches": [
+                "https://*.youtube.com/*"
+            ]
+        }
+    ]
 }
