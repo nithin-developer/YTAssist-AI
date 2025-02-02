@@ -1,0 +1,6 @@
+{
+    "manifest_version": 3,
+    "name": "YTAssist-AI",
+    "version": "1.0",
+    "description": "AI-powered video analysis extension using Gemini API"
+}
