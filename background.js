@@ -1,14 +1,23 @@
 class GeminiAPI {
   async analyzeVideo(videoId) {
     try {
+      if (this.analysisCache.has(videoId)) {
+        console.log("Returning cached analysis for video:", videoId);
+        return this.analysisCache.get(videoId);
+      }
+
       const videoData = await this.fetchVideoMetadata(videoId);
       const prompt = this.createAnalysisPrompt(videoData);
       const analysis = await this.generateContent(prompt);
+
+      this.analysisCache.set(videoId, analysis);
 
       this.conversationHistory.set(videoId, {
         context: analysis,
         messages: [],
       });
+
+      await this.saveToStorage();
 
       return analysis;
     } catch (error) {
@@ -27,6 +36,30 @@ class GeminiAPI {
     this.conversationHistory = new Map();
     this.metadataCache = new Map();
     this.analysisCache = new Map();
+
+    this.initializeStorage();
+  }
+
+  async initializeStorage() {
+    const data = await chrome.storage.local.get([
+      "conversationHistory",
+      "analysisCache",
+      "metadataCache",
+    ]);
+
+    this.conversationHistory = new Map(
+      Object.entries(data.conversationHistory || {})
+    );
+    this.analysisCache = new Map(Object.entries(data.analysisCache || {}));
+    this.metadataCache = new Map(Object.entries(data.metadataCache || {}));
+  }
+
+  async saveToStorage() {
+    await chrome.storage.local.set({
+      conversationHistory: Object.fromEntries(this.conversationHistory),
+      analysisCache: Object.fromEntries(this.analysisCache),
+      metadataCache: Object.fromEntries(this.metadataCache),
+    });
   }
 
   async fetchVideoMetadata(videoId) {
@@ -190,6 +223,49 @@ class GeminiAPI {
     const data = await response.json();
     return data.candidates[0].content.parts[0].text;
   }
+
+  async handleChatQuery(videoId, message) {
+    try {
+      await this.initializeStorage();
+
+      console.log("Handling chat query for video:", videoId);
+      const conversation = this.conversationHistory.get(videoId);
+
+      if (!conversation) {
+        await this.analyzeVideo(videoId);
+        throw new Error("Session expired. Please analyze the video again.");
+      }
+
+      conversation.messages.push({
+        role: "user",
+        content: message,
+      });
+
+      const prompt = {
+        text: `You are a helpful AI assistant analyzing a YouTube video.
+                Context: ${conversation.context}
+                
+                User question: ${message}
+                
+                Please provide a clear and concise answer based on the video content.
+                Format the response in a readable way using markdown.`,
+      };
+
+      const response = await this.generateContent(prompt);
+
+      conversation.messages.push({
+        role: "assistant",
+        content: response,
+      });
+
+      await this.saveToStorage();
+
+      return response;
+    } catch (error) {
+      console.error("Error in handleChatQuery:", error);
+      throw error;
+    }
+  }
 }
 
 const geminiAPI = new GeminiAPI();
@@ -214,6 +290,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       })
       .catch((error) => {
         console.error("Analysis error:", error);
+        sendResponse({ error: error.message });
+      });
+    return true;
+  }
+
+  if (request.action === "chatQuery") {
+    console.log("Processing chatQuery action with videoId:", request.videoId);
+    geminiAPI
+      .handleChatQuery(request.videoId, request.message)
+      .then((response) => {
+        console.log("Chat response:", response);
+        sendResponse(response);
+      })
+      .catch((error) => {
+        console.error("Chat error:", error);
         sendResponse({ error: error.message });
       });
     return true;

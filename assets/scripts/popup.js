@@ -3,45 +3,39 @@ let isAnalyzing = false;
 let chatHistory = [];
 let isConnected = true;
 
-// Initialize UI elements
 const analyzeButton = document.getElementById("analyze-current-tab");
 const chatInput = document.getElementById("chat-input");
 const sendButton = document.getElementById("send-message");
 const chatContainer = document.getElementById("chat-container");
 
-// Add this at the top of popup.js
 function formatMarkdown(text) {
-  return (
-    text
-      // Format headings with specific spacing
-      .replace(
-        /##\s*(.*)/g,
-        '<h2 class="text-lg font-semibold mt-0 mb-0">$1</h2>'
-      )
-      // Format bullet points
-      .replace(
-        /•\s*(.*)/g,
-        '<div class="flex items-start space-x-2 mb-1"><span class="text-blue-500">•</span><span>$1</span></div>'
-      )
-      // Format bold text
-      .replace(/\*\*(.*?)\*\*/g, '<span class="font-semibold">$1</span>')
-      // Format paragraphs with less spacing
-      .replace(/\n\n/g, '<div class="mb-2"></div>')
-      // Format single line breaks
-      .replace(/\n/g, "<br>")
-      // Clean up any extra spaces
-      .replace(/\s+/g, " ")
-      // Clean up any empty paragraphs
-      .replace(
-        /<div class="mb-2"><\/div>\s*<div class="mb-2"><\/div>/g,
-        '<div class="mb-2"></div>'
-      )
-  );
+  return text
+
+    .replace(
+      /##\s*(.*)/g,
+      '<h2 class="text-lg font-semibold mt-0 mb-0">$1</h2>'
+    )
+
+    .replace(
+      /•\s*(.*)/g,
+      '<div class="flex items-start space-x-2 mb-1"><span class="text-blue-500">•</span><span>$1</span></div>'
+    )
+
+    .replace(/\*\*(.*?)\*\*/g, '<span class="font-semibold">$1</span>')
+
+    .replace(/\n\n/g, '<div class="mb-2"></div>')
+
+    .replace(/\n/g, "<br>")
+
+    .replace(/\s+/g, " ")
+
+    .replace(
+      /<div class="mb-2"><\/div>\s*<div class="mb-2"><\/div>/g,
+      '<div class="mb-2"></div>'
+    );
 }
 
-// Add message to chat
 function addMessage(type, content) {
-  // Hide welcome message if it exists
   const welcomeMessage = document.getElementById("welcome-message");
   if (welcomeMessage) {
     welcomeMessage.remove();
@@ -55,7 +49,6 @@ function addMessage(type, content) {
   let formattedContent =
     type === "assistant" ? formatMarkdown(content) : content;
 
-  // Add message to history
   chatHistory.push({
     type,
     content: content,
@@ -91,7 +84,6 @@ function addMessage(type, content) {
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// Add these functions to handle the thinking indicator
 function showThinkingIndicator() {
   const messageDiv = document.createElement("div");
   messageDiv.id = "thinking-indicator";
@@ -127,7 +119,6 @@ function removeThinkingIndicator() {
   }
 }
 
-// Add connection check function
 function checkConnection() {
   if (!isConnected) {
     addMessage(
@@ -139,7 +130,6 @@ function checkConnection() {
   return true;
 }
 
-// Update handleSendMessage function
 async function handleSendMessage() {
   const message = chatInput.value.trim();
   if (!message || !currentVideoId) return;
@@ -172,7 +162,6 @@ async function handleSendMessage() {
   }
 }
 
-// Enable/disable chat interface
 function setChatEnabled(enabled) {
   chatInput.disabled = !enabled;
   sendButton.disabled = !enabled;
@@ -181,7 +170,6 @@ function setChatEnabled(enabled) {
   }
 }
 
-// Handle video analysis
 async function analyzeCurrentVideo() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
@@ -212,7 +200,7 @@ async function analyzeCurrentVideo() {
     } else {
       addMessage("assistant", response);
       setChatEnabled(true);
-      isConnected = true; // Set connection state to true after successful analysis
+      isConnected = true;
     }
   } catch (error) {
     addMessage("error", "Failed to analyze video. Please try again.");
@@ -230,20 +218,162 @@ async function analyzeCurrentVideo() {
   }
 }
 
-// Event listeners
 analyzeButton.addEventListener("click", analyzeCurrentVideo);
 sendButton.addEventListener("click", handleSendMessage);
 chatInput.addEventListener("keypress", (e) => {
   if (e.key === "Enter") handleSendMessage();
 });
 
-// Initialize
 setChatEnabled(false);
 
-// Update the DOMContentLoaded event listener
-document.addEventListener("DOMContentLoaded", () => {
+function toggleExportDropdown() {
+  const dropdown = document.getElementById("export-dropdown");
+  if (!dropdown) return;
+  dropdown.classList.toggle("hidden");
+}
 
-  // Initialize other UI elements
+function waitForHtml2pdf() {
+  return new Promise((resolve, reject) => {
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    const checkHtml2pdf = () => {
+      if (typeof html2pdf !== "undefined") {
+        resolve();
+      } else if (attempts >= maxAttempts) {
+        reject(new Error("html2pdf failed to load"));
+      } else {
+        attempts++;
+        setTimeout(checkHtml2pdf, 500);
+      }
+    };
+
+    checkHtml2pdf();
+  });
+}
+
+function exportToPDF() {
+  try {
+    if (chatHistory.length === 0) {
+      addMessage("error", "No chat history to export.");
+      return;
+    }
+
+    const doc = new jsPDF();
+    let yPos = 20;
+
+    doc.setFontSize(20);
+    doc.setTextColor(26, 115, 232);
+    doc.text("Chat History", 20, yPos);
+    yPos += 8;
+
+    doc.setFontSize(10);
+    doc.setTextColor(102, 102, 102);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, yPos);
+    yPos += 4;
+
+    if (currentVideoId) {
+      doc.text(`Video ID: ${currentVideoId}`, 20, yPos);
+      yPos += 4;
+    }
+
+    doc.setDrawColor(238, 238, 238);
+    doc.line(20, yPos, 190, yPos);
+    yPos += 6;
+
+    chatHistory.forEach((msg) => {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFontSize(11);
+      doc.setTextColor(msg.type === "user" ? [26, 115, 232] : [52, 168, 83]);
+
+      doc.setFont(undefined, "bold");
+      const role = msg.type === "user" ? "You" : "Assistant";
+      doc.text(`${role}:`, 20, yPos);
+      yPos += 5;
+
+      doc.setFont(undefined, "normal");
+      doc.setTextColor(0);
+      const lines = doc.splitTextToSize(msg.content, 170);
+
+      doc.text(lines, 20, yPos);
+      yPos += lines.length * 5 + 8;
+    });
+
+    const filename = `chat-history-${currentVideoId || "export"}-${new Date()
+      .toISOString()
+      .slice(0, 10)}.pdf`;
+    doc.save(filename);
+    // addMessage("system", "PDF exported successfully!");
+  } catch (error) {
+    console.error("PDF generation error:", error);
+    addMessage("error", "Failed to generate PDF. Please try again.");
+  }
+}
+
+function exportToJSON() {
+  const exportData = {
+    videoId: currentVideoId,
+    timestamp: new Date().toISOString(),
+    messages: chatHistory,
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `chat-history-${currentVideoId || "export"}-${new Date()
+    .toISOString()
+    .slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const exportButton = document.getElementById("export-button");
+  const exportDropdown = document.getElementById("export-dropdown");
+  const exportPDFButton = document.getElementById("export-pdf");
+  const exportJSONButton = document.getElementById("export-json");
+
+  if (exportButton) {
+    exportButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleExportDropdown();
+    });
+  }
+
+  if (exportPDFButton) {
+    exportPDFButton.addEventListener("click", () => {
+      exportToPDF();
+      toggleExportDropdown();
+    });
+  }
+
+  if (exportJSONButton) {
+    exportJSONButton.addEventListener("click", () => {
+      exportToJSON();
+      toggleExportDropdown();
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    if (
+      exportDropdown &&
+      !exportButton?.contains(e.target) &&
+      !exportDropdown?.contains(e.target)
+    ) {
+      exportDropdown.classList.add("hidden");
+    }
+  });
+
   const analyzeButton = document.getElementById("analyze-current-tab");
   const chatInput = document.getElementById("chat-input");
   const sendButton = document.getElementById("send-message");
@@ -257,6 +387,5 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Initialize chat state
   setChatEnabled(false);
 });

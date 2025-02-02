@@ -28,15 +28,14 @@
                 "https://*.youtube.com/*"
             ],
             "css": [
-                "styles/style.css"
+                "assets/styles/style.css"
             ]
         }
     ],
     "web_accessible_resources": [
         {
             "resources": [
-                "styles/modal.css",
-                "components/*"
+                "assets/styles/style.css"
             ],
             "matches": [
                 "https://*.youtube.com/*"
