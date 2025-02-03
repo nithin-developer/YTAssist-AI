@@ -8,6 +8,42 @@ const chatInput = document.getElementById("chat-input");
 const sendButton = document.getElementById("send-message");
 const chatContainer = document.getElementById("chat-container");
 
+function encryptData(data, key = "your-secure-key-here") {
+  try {
+    const jsonString = JSON.stringify(data);
+    const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
+    return encodedData
+      .split("")
+      .map((char, index) => {
+        return String.fromCharCode(
+          char.charCodeAt(0) ^ key.charCodeAt(index % key.length)
+        );
+      })
+      .join("");
+  } catch (error) {
+    console.error("Encryption error:", error);
+    return null;
+  }
+}
+
+function decryptData(encryptedData, key = "your-secure-key-here") {
+  try {
+    const decrypted = encryptedData
+      .split("")
+      .map((char, index) => {
+        return String.fromCharCode(
+          char.charCodeAt(0) ^ key.charCodeAt(index % key.length)
+        );
+      })
+      .join("");
+    const decodedData = decodeURIComponent(escape(atob(decrypted)));
+    return JSON.parse(decodedData);
+  } catch (error) {
+    console.error("Decryption error:", error);
+    return null;
+  }
+}
+
 function formatMarkdown(text) {
   return text
 
@@ -75,68 +111,80 @@ function addMessage(type, content) {
   chatContainer.scrollTop = chatContainer.scrollHeight;
 
   chrome.storage.local.get(["chatHistories"], async (result) => {
-    const histories = result.chatHistories || {};
-    let currentChatId = sessionStorage.getItem("currentChatId");
+    try {
+      let histories = {};
 
-    if (!currentChatId || !histories[currentChatId]) {
-      const videoTitle = await getVideoTitle(currentVideoId);
-      let newTitle = videoTitle;
+      if (result.chatHistories) {
+        histories = decryptData(result.chatHistories) || {};
+      }
 
-      if (type === "assistant" && content.includes("Video Analysis")) {
-        let chatNumber = 1;
-        const existingChats = Object.values(histories)
-          .filter((chat) => chat.videoId === currentVideoId)
-          .map((chat) => chat.title);
+      let currentChatId = sessionStorage.getItem("currentChatId");
 
-        while (existingChats.includes(newTitle)) {
-          chatNumber++;
-          newTitle = `${videoTitle} (${chatNumber})`;
-        }
+      if (!currentChatId || !histories[currentChatId]) {
+        const videoTitle = await getVideoTitle(currentVideoId);
+        let newTitle = videoTitle;
 
-        currentChatId = `${currentVideoId}_${Date.now()}`;
-      } else {
-        currentChatId = `${currentVideoId}_${Date.now()}`;
-        if (currentVideoId) {
-          newTitle = `${videoTitle} - Chat`;
+        if (type === "assistant" && content.includes("Video Analysis")) {
+          let chatNumber = 1;
+          const existingChats = Object.values(histories)
+            .filter((chat) => chat.videoId === currentVideoId)
+            .map((chat) => chat.title);
+
+          while (existingChats.includes(newTitle)) {
+            chatNumber++;
+            newTitle = `${videoTitle} (${chatNumber})`;
+          }
+
+          currentChatId = `${currentVideoId}_${Date.now()}`;
         } else {
-          newTitle = "New Chat";
+          currentChatId = `${currentVideoId}_${Date.now()}`;
+          if (currentVideoId) {
+            newTitle = `${videoTitle} - Chat`;
+          } else {
+            newTitle = "New Chat";
+          }
         }
+
+        histories[currentChatId] = {
+          title: newTitle,
+          timestamp: new Date().toISOString(),
+          messages: [
+            {
+              type,
+              content,
+              timestamp: new Date().toISOString(),
+            },
+          ],
+          videoId: currentVideoId,
+          context:
+            type === "assistant" && content.includes("Video Analysis")
+              ? content
+              : null,
+        };
+
+        sessionStorage.setItem("currentChatId", currentChatId);
+      } else {
+        if (!histories[currentChatId].messages) {
+          histories[currentChatId].messages = [];
+        }
+
+        histories[currentChatId].messages.push({
+          type,
+          content,
+          timestamp: new Date().toISOString(),
+        });
+
+        histories[currentChatId].timestamp = new Date().toISOString();
       }
 
-      histories[currentChatId] = {
-        title: newTitle,
-        timestamp: new Date().toISOString(),
-        messages: [
-          {
-            type,
-            content,
-            timestamp: new Date().toISOString(),
-          },
-        ],
-        videoId: currentVideoId,
-        context:
-          type === "assistant" && content.includes("Video Analysis")
-            ? content
-            : null,
-      };
-
-      sessionStorage.setItem("currentChatId", currentChatId);
-    } else {
-      if (!histories[currentChatId].messages) {
-        histories[currentChatId].messages = [];
+      const encryptedHistories = encryptData(histories);
+      if (encryptedHistories) {
+        await chrome.storage.local.set({ chatHistories: encryptedHistories });
+        updateChatHistoryList();
       }
-
-      histories[currentChatId].messages.push({
-        type,
-        content,
-        timestamp: new Date().toISOString(),
-      });
-
-      histories[currentChatId].timestamp = new Date().toISOString();
+    } catch (error) {
+      console.error("Error handling message:", error);
     }
-
-    await chrome.storage.local.set({ chatHistories: histories });
-    updateChatHistoryList();
   });
 }
 
@@ -532,38 +580,47 @@ function loadChatHistory(chatId) {
   chatContainer.innerHTML = "";
 
   chrome.storage.local.get(["chatHistories"], (result) => {
-    const histories = result.chatHistories || {};
-    const selectedChat = histories[chatId];
+    try {
+      let histories = {};
 
-    if (selectedChat) {
-      currentVideoId = selectedChat.videoId;
-      chatHistory = selectedChat.messages || [];
-      sessionStorage.setItem("currentChatId", chatId);
-
-      setChatEnabled(!!selectedChat.videoId);
-
-      if (selectedChat.messages && selectedChat.messages.length > 0) {
-        selectedChat.messages.forEach((message) => {
-          const messageDiv = document.createElement("div");
-          messageDiv.className = `message-container flex justify-${
-            message.type === "user" ? "end" : "start"
-          } animate-slideIn`;
-
-          let formattedContent =
-            message.type === "assistant"
-              ? formatMarkdown(message.content)
-              : message.content;
-
-          const messageContent = createMessageContent(
-            message.type,
-            formattedContent
-          );
-          messageDiv.innerHTML = messageContent;
-          chatContainer.appendChild(messageDiv);
-        });
-
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+      if (result.chatHistories) {
+        histories = decryptData(result.chatHistories) || {};
       }
+
+      const selectedChat = histories[chatId];
+
+      if (selectedChat) {
+        currentVideoId = selectedChat.videoId;
+        chatHistory = selectedChat.messages || [];
+        sessionStorage.setItem("currentChatId", chatId);
+
+        setChatEnabled(!!selectedChat.videoId);
+
+        if (selectedChat.messages && selectedChat.messages.length > 0) {
+          selectedChat.messages.forEach((message) => {
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `message-container flex justify-${
+              message.type === "user" ? "end" : "start"
+            } animate-slideIn`;
+
+            let formattedContent =
+              message.type === "assistant"
+                ? formatMarkdown(message.content)
+                : message.content;
+
+            const messageContent = createMessageContent(
+              message.type,
+              formattedContent
+            );
+            messageDiv.innerHTML = messageContent;
+            chatContainer.appendChild(messageDiv);
+          });
+
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+      }
+    } catch (error) {
+      console.error("Error loading chat history:", error);
     }
   });
 }
@@ -572,34 +629,42 @@ function updateChatHistoryList() {
   const historyContainer = document.querySelector(".p-2.space-y-2");
 
   chrome.storage.local.get(["chatHistories"], (result) => {
-    const histories = result.chatHistories || {};
+    try {
+      let histories = {};
 
-    const sortedChats = Object.entries(histories).sort(
-      ([, a], [, b]) => new Date(b.timestamp) - new Date(a.timestamp)
-    );
+      if (result.chatHistories) {
+        histories = decryptData(result.chatHistories) || {};
+      }
 
-    historyContainer.innerHTML = sortedChats
-      .map(
-        ([chatId, chat]) => `
-        <div class="p-3 hover:bg-gray-100 rounded-lg cursor-pointer chat-history-item" data-chat-id="${chatId}">
-          <h3 class="font-medium text-gray-800 truncate">
-            ${chat.title || "Untitled Chat"}
-          </h3>
-          <p class="text-sm text-gray-500">
-            ${new Date(chat.timestamp).toLocaleString()}
-          </p>
-        </div>
-      `
-      )
-      .join("");
+      const sortedChats = Object.entries(histories).sort(
+        ([, a], [, b]) => new Date(b.timestamp) - new Date(a.timestamp)
+      );
 
-    document.querySelectorAll(".chat-history-item").forEach((item) => {
-      item.addEventListener("click", () => {
-        const chatId = item.getAttribute("data-chat-id");
-        loadChatHistory(chatId);
-        toggleSidebar();
+      historyContainer.innerHTML = sortedChats
+        .map(
+          ([chatId, chat]) => `
+          <div class="p-3 hover:bg-gray-100 rounded-lg cursor-pointer chat-history-item" data-chat-id="${chatId}">
+            <h3 class="font-medium text-gray-800 truncate">
+              ${chat.title || "Untitled Chat"}
+            </h3>
+            <p class="text-sm text-gray-500">
+              ${new Date(chat.timestamp).toLocaleString()}
+            </p>
+          </div>
+        `
+        )
+        .join("");
+
+      document.querySelectorAll(".chat-history-item").forEach((item) => {
+        item.addEventListener("click", () => {
+          const chatId = item.getAttribute("data-chat-id");
+          loadChatHistory(chatId);
+          toggleSidebar();
+        });
       });
-    });
+    } catch (error) {
+      console.error("Error updating chat history:", error);
+    }
   });
 }
 

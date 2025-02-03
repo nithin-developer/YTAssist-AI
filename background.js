@@ -41,25 +41,45 @@ class GeminiAPI {
   }
 
   async initializeStorage() {
-    const data = await chrome.storage.local.get([
-      "conversationHistory",
-      "analysisCache",
-      "metadataCache",
-    ]);
+    try {
+      const data = await chrome.storage.local.get(["encryptedCache"]);
 
-    this.conversationHistory = new Map(
-      Object.entries(data.conversationHistory || {})
-    );
-    this.analysisCache = new Map(Object.entries(data.analysisCache || {}));
-    this.metadataCache = new Map(Object.entries(data.metadataCache || {}));
+      if (data.encryptedCache) {
+        const decryptedData = decryptData(data.encryptedCache);
+        if (decryptedData) {
+          this.conversationHistory = new Map(
+            Object.entries(decryptedData.conversationHistory || {})
+          );
+          this.analysisCache = new Map(
+            Object.entries(decryptedData.analysisCache || {})
+          );
+          this.metadataCache = new Map(
+            Object.entries(decryptedData.metadataCache || {})
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Storage initialization error:", error);
+    }
   }
 
   async saveToStorage() {
-    await chrome.storage.local.set({
-      conversationHistory: Object.fromEntries(this.conversationHistory),
-      analysisCache: Object.fromEntries(this.analysisCache),
-      metadataCache: Object.fromEntries(this.metadataCache),
-    });
+    try {
+      const dataToStore = {
+        conversationHistory: Object.fromEntries(this.conversationHistory),
+        analysisCache: Object.fromEntries(this.analysisCache),
+        metadataCache: Object.fromEntries(this.metadataCache),
+      };
+
+      const encryptedData = encryptData(dataToStore);
+      if (encryptedData) {
+        await chrome.storage.local.set({
+          encryptedCache: encryptedData,
+        });
+      }
+    } catch (error) {
+      console.error("Storage save error:", error);
+    }
   }
 
   async fetchVideoMetadata(videoId) {
@@ -284,6 +304,47 @@ class GeminiAPI {
       console.error("Error fetching video title:", error);
       return "Untitled Video";
     }
+  }
+
+  async cacheVideoMetadata(videoId, metadata) {
+    this.metadataCache.set(videoId, metadata);
+    await this.saveToStorage();
+  }
+}
+
+function encryptData(data, key = "your-secure-key-here") {
+  try {
+    const jsonString = JSON.stringify(data);
+    const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
+    return encodedData
+      .split("")
+      .map((char, index) => {
+        return String.fromCharCode(
+          char.charCodeAt(0) ^ key.charCodeAt(index % key.length)
+        );
+      })
+      .join("");
+  } catch (error) {
+    console.error("Encryption error:", error);
+    return null;
+  }
+}
+
+function decryptData(encryptedData, key = "your-secure-key-here") {
+  try {
+    const decrypted = encryptedData
+      .split("")
+      .map((char, index) => {
+        return String.fromCharCode(
+          char.charCodeAt(0) ^ key.charCodeAt(index % key.length)
+        );
+      })
+      .join("");
+    const decodedData = decodeURIComponent(escape(atob(decrypted)));
+    return JSON.parse(decodedData);
+  } catch (error) {
+    console.error("Decryption error:", error);
+    return null;
   }
 }
 
