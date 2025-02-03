@@ -10,7 +10,7 @@ YTAssist AI is a powerful Chrome extension that leverages Google's Gemini AI to 
 
 ## 🎥 Demo
 
-![screenshots/demo-video.mp4](https://github.com/nithin-developer/YTAssist-AI/raw/refs/heads/main/screenshots/demo-video.mp4)
+<video src="https://github.com/nithin-developer/YTAssist-AI/raw/refs/heads/main/screenshots/demo-video.mp4" controls></video>
 
 ## 📸 Screenshots
 
