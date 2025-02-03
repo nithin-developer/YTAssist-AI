@@ -27,8 +27,8 @@ class GeminiAPI {
   }
 
   constructor() {
-    this.API_KEY = "AIzaSyC9spY00mMOFb1CHoXdhgvToDDewYrfceI";
-    this.YOUTUBE_API_KEY = "AIzaSyD4X5_5_mw4EbUqMlm8ksvGKmjPKC4YSxA";
+    this.API_KEY = "your-api-key";
+    this.YOUTUBE_API_KEY = "your-api-key";
 
     this.BASE_URL =
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
