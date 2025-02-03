@@ -1,126 +1,130 @@
 /* Tailwind CSS imports */
-@import 'https://cdn.jsdelivr.net/npm/tailwindcss@2/dist/tailwind.min.css';
+@import "https://cdn.jsdelivr.net/npm/tailwindcss@2/dist/tailwind.min.css";
 
 /* Custom animations */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideIn {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-/* Button styles */
-#yt-analyzer-btn {
-    animation: fadeIn 0.3s ease-out;
-}
-
-#yt-analyzer-btn:hover {
-    transform: scale(1.05);
-    transition: transform 0.2s ease-out;
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* Modal styles */
 .modal-overlay {
-    animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .modal-content {
-    animation: slideIn 0.3s ease-out;
+  animation: slideIn 0.3s ease-out;
 }
 
 /* Chat message animations */
 .message {
-    animation: slideIn 0.2s ease-out;
+  animation: slideIn 0.2s ease-out;
 }
 
 /* Glassmorphism effects */
 .glass-effect {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* Loading spinner */
 .loading-spinner {
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    border-top: 2px solid #ffffff;
-    width: 20px;
-    height: 20px;
-    animation: spin 1s linear infinite;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 2px solid #ffffff;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Modal styles */
 .modal-backdrop {
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
 }
 
 .modal-content {
-    background-color: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* Chat message styles */
 .message-user {
-    background: linear-gradient(to right, #3b82f6, #4f46e5);
-    color: white;
-    border-radius: 1rem;
-    padding: 0.75rem 1.25rem;
-    margin-left: auto;
-    width: 100%;
-    max-width: 70%;
-    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
-    word-wrap: break-word;
-    hyphens: auto;
-    line-height: 1.4;
+  background: linear-gradient(to right, #3b82f6, #4f46e5);
+  color: white;
+  border-radius: 1rem;
+  padding: 0.75rem 1.25rem;
+  margin-left: auto;
+  width: 100%;
+  max-width: 70%;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+  word-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.4;
 }
 
 .message-assistant {
-    background: white;
-    color: #1f2937;
-    border-radius: 1rem;
-    padding: 1rem 1.5rem;
-    margin-right: auto;
-    width: 100%;
-    max-width: 70%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    word-wrap: break-word;
-    hyphens: auto;
-    line-height: 1.4;
+  background: white;
+  color: #1f2937;
+  border-radius: 1rem;
+  padding: 1rem 1.5rem;
+  margin-right: auto;
+  width: 100%;
+  max-width: 70%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  word-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.4;
 }
 
 /* Add styles for formatted content */
 .message-assistant h2 {
-    color: #1f2937;
-    margin-top: 0.5rem;
-    margin-bottom: 0.25rem;
+  color: #1f2937;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .message-assistant .prose {
-    max-width: none;
+  max-width: none;
 }
 
 .message-assistant .prose p {
-    margin: 0.5rem 0;
+  margin: 0.5rem 0;
 }
 
 .message-assistant .prose ul {
-    margin: 0.25rem 0;
-    padding-left: 1rem;
+  margin: 0.25rem 0;
+  padding-left: 1rem;
 }
 
 .message-assistant .prose li {
-    margin: 0.125rem 0;
+  margin: 0.125rem 0;
 }
 
 /* Tailwind classes */
@@ -130,201 +134,307 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .modal-content {
-        width: 90% !important;
-        margin: 10px;
-    }
+  .modal-content {
+    width: 90% !important;
+    margin: 10px;
+  }
 }
 
 /* Add these new styles */
 .animate-slideIn {
-    animation: slideIn 0.2s ease-out;
+  animation: slideIn 0.2s ease-out;
 }
 
 .glass-effect {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* Update loading spinner for popup */
 .loading-spinner {
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    border-top: 2px solid #ffffff;
-    width: 20px;
-    height: 20px;
-    animation: spin 1s linear infinite;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 2px solid #ffffff;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
 }
 
 /* Add these new styles */
 .loading-dots {
-    display: inline-flex;
-    align-items: center;
+  display: inline-flex;
+  align-items: center;
 }
 
 .loading-dots::after {
-    content: '';
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background-color: currentColor;
-    margin-left: 4px;
-    animation: loading-dots 1.4s infinite;
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: currentColor;
+  margin-left: 4px;
+  animation: loading-dots 1.4s infinite;
 }
 
 @keyframes loading-dots {
-    0%, 20% {
-        content: '.';
-    }
-    40% {
-        content: '..';
-    }
-    60% {
-        content: '...';
-    }
-    80%, 100% {
-        content: '';
-    }
+  0%,
+  20% {
+    content: ".";
+  }
+  40% {
+    content: "..";
+  }
+  60% {
+    content: "...";
+  }
+  80%,
+  100% {
+    content: "";
+  }
 }
 
 /* Add smooth transitions */
 .transition-all {
-    transition-property: all;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 150ms;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
 
 /* Add welcome message styles */
 #welcome-message {
-    opacity: 1;
-    transition: opacity 0.3s ease-out;
+  opacity: 1;
+  transition: opacity 0.3s ease-out;
 }
 
 #welcome-message.hiding {
-    opacity: 0;
+  opacity: 0;
 }
 
 /* Add animation for the welcome arrow */
 @keyframes bounce {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-10px);
-    }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .animate-bounce {
-    animation: bounce 2s infinite;
+  animation: bounce 2s infinite;
 }
 
 /* Update chat container for welcome message */
 .youtube-analyzer-extension #chat-container {
-    position: relative;
-    min-height: 400px;
+  position: relative;
+  min-height: 400px;
 }
 
 /* Remove the empty state styling that was causing the gap */
 .youtube-analyzer-extension #chat-container:empty {
-    display: none;
+  display: none;
 }
 
 /* Add container styles for better message alignment */
 .youtube-analyzer-extension .message-container {
-    width: 100%;
-    padding: 0.5rem 0;
+  width: 100%;
+  padding: 0.5rem 0;
 }
 
 /* Add responsive adjustments */
 @media (max-width: 480px) {
-    .message-user {
-        max-width: 85%;
-    }
-    
-    .message-assistant {
-        max-width: 90%;
-    }
+  .message-user {
+    max-width: 85%;
+  }
+
+  .message-assistant {
+    max-width: 90%;
+  }
 }
 
 /* Add typing indicator styles */
 .thinking-bubble {
-    padding: 0.75rem 1.25rem !important;
-    min-width: 80px;
+  padding: 0.75rem 1.25rem !important;
+  min-width: 80px;
 }
 
 .typing-indicator {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .typing-indicator span {
-    width: 8px;
-    height: 8px;
-    background-color: #3b82f6;
-    border-radius: 50%;
-    display: inline-block;
-    opacity: 0.4;
+  width: 8px;
+  height: 8px;
+  background-color: #3b82f6;
+  border-radius: 50%;
+  display: inline-block;
+  opacity: 0.4;
 }
 
 .typing-indicator span:nth-child(1) {
-    animation: typing 1.4s infinite;
+  animation: typing 1.4s infinite;
 }
 
 .typing-indicator span:nth-child(2) {
-    animation: typing 1.4s infinite 0.2s;
+  animation: typing 1.4s infinite 0.2s;
 }
 
 .typing-indicator span:nth-child(3) {
-    animation: typing 1.4s infinite 0.4s;
+  animation: typing 1.4s infinite 0.4s;
 }
 
 @keyframes typing {
-    0%, 100% {
-        transform: translateY(0);
-        opacity: 0.4;
-    }
-    50% {
-        transform: translateY(-4px);
-        opacity: 1;
-    }
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
 }
 
 /* Update dropdown styles */
 #export-dropdown {
-    animation: fadeIn 0.2s ease-out;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    transform-origin: top right;
+  animation: fadeIn 0.2s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transform-origin: top right;
 }
 
 #export-dropdown.animate-fadeIn {
-    animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.2s ease-out;
 }
 
 #export-dropdown button {
-    transition: all 0.2s ease-out;
-    width: 100%;
-    text-align: left;
-    padding: 0.75rem 1rem;
+  transition: all 0.2s ease-out;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
 }
 
 #export-dropdown button:hover {
-    background: rgba(243, 244, 246, 0.8);
+  background: rgba(243, 244, 246, 0.8);
 }
 
 /* Add animation for dropdown */
 @keyframes fadeIn {
-    from { 
-        opacity: 0;
-        transform: scale(0.95) translateY(-10px);
-    }
-    to { 
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Update sidebar styles */
+#sidebar {
+  height: 600px; /* Match popup height */
+  transition: transform 0.3s ease-in-out;
+  z-index: 50;
+}
+
+#sidebar .w-64 {
+  height: 600px; /* Match popup height */
+}
+
+/* Ensure the content area is scrollable */
+#sidebar .overflow-y-auto {
+  height: calc(
+    100% - 116px
+  ); /* Subtract header height (including padding and button) */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+/* Webkit scrollbar styles */
+#sidebar .overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+#sidebar .overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#sidebar .overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+#sidebar .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Keep existing sidebar styles */
+#sidebar.collapsed {
+  transform: translateX(-256px);
+}
+
+#sidebar .shadow-lg {
+  box-shadow: 4px 0 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Update toggle button animation */
+#sidebar.collapsed #toggle-sidebar svg {
+  transform: rotate(0deg);
+}
+
+/* Overlay styles for when sidebar is open */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease-in-out;
+  z-index: 40;
+}
+
+.sidebar-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Chat history item hover effect */
+.chat-history-item {
+  transition: all 0.2s ease-out;
+}
+
+.chat-history-item:hover {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+/* Update sidebar toggle button styles */
+#main-toggle-sidebar {
+  z-index: 60;
+}
+
+#main-toggle-sidebar svg {
+  transition: transform 0.3s ease-in-out;
+}
+
+#sidebar.collapsed + .youtube-analyzer-extension #main-toggle-sidebar svg {
+  transform: rotate(0deg);
+}
+
+.youtube-analyzer-extension #main-toggle-sidebar svg {
+  transform: rotate(180deg);
+}
+
+/* Remove the old toggle button from sidebar header */
+#sidebar .p-4.border-b button#toggle-sidebar {
+  display: none;
 }

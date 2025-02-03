@@ -27,8 +27,8 @@ class GeminiAPI {
   }
 
   constructor() {
-    this.API_KEY = "YOUR_GEMINI_API_KEY";
-    this.YOUTUBE_API_KEY = "YOUR_YOUTUBE_API_KEY";
+    this.API_KEY = "AIzaSyC9spY00mMOFb1CHoXdhgvToDDewYrfceI";
+    this.YOUTUBE_API_KEY = "AIzaSyD4X5_5_mw4EbUqMlm8ksvGKmjPKC4YSxA";
 
     this.BASE_URL =
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
@@ -159,41 +159,41 @@ class GeminiAPI {
   createAnalysisPrompt(videoData) {
     return {
       text: `Analyze this YouTube video:
-                  Title: ${videoData.title}
-                  Channel: ${videoData.channelTitle}
-                  Duration: ${videoData.duration}
-                  Views: ${videoData.viewCount}
-                  Published: ${videoData.publishedAt}
-  
-                  Description: ${videoData.description}
-  
-                  Please provide a professional analysis in the following format:
-  
-                  ## Video Overview
-                  [A brief 2-3 sentence summary of the video]
-  
-                  ## Key Topics
-                  • [Topic 1]
-                  • [Topic 2]
-                  • [Topic 3]
-                  [etc...]
-  
-                  ## Main Points
-                  • [Key point 1]
-                  • [Key point 2]
-                  • [Key point 3]
-                  [etc...]
-  
-                  ## Video Statistics
-                  • Duration: ${videoData.duration}
-                  • Views: ${videoData.viewCount}
-                  • Likes: ${videoData.likeCount}
-                  • Comments: ${videoData.commentCount}
-  
-                  ## Engagement Questions
-                  [3-4 thought-provoking questions about the video content]
-  
-                  Format the response using markdown for better readability.`,
+                Title: ${videoData.title}
+                Channel: ${videoData.channelTitle}
+                Duration: ${videoData.duration}
+                Views: ${videoData.viewCount}
+                Published: ${videoData.publishedAt}
+
+                Description: ${videoData.description}
+
+                Please provide a professional analysis in the following format:
+
+                ## Video Overview
+                [A brief 2-3 sentence summary of the video]
+
+                ## Key Topics
+                • [Topic 1]
+                • [Topic 2]
+                • [Topic 3]
+                [etc...]
+
+                ## Main Points
+                • [Key point 1]
+                • [Key point 2]
+                • [Key point 3]
+                [etc...]
+
+                ## Video Statistics
+                • Duration: ${videoData.duration}
+                • Views: ${videoData.viewCount}
+                • Likes: ${videoData.likeCount}
+                • Comments: ${videoData.commentCount}
+
+                ## Engagement Questions
+                [3-4 thought-provoking questions about the video content]
+
+                Format the response using markdown for better readability.`,
     };
   }
 
@@ -226,44 +226,63 @@ class GeminiAPI {
 
   async handleChatQuery(videoId, message) {
     try {
-      await this.initializeStorage();
+      const data = await chrome.storage.local.get(["chatHistories"]);
+      const histories = data.chatHistories || {};
+      const currentChatId = Object.keys(histories).find(
+        (id) =>
+          histories[id].videoId === videoId && histories[id].messages.length > 0
+      );
 
-      console.log("Handling chat query for video:", videoId);
-      const conversation = this.conversationHistory.get(videoId);
-
-      if (!conversation) {
-        await this.analyzeVideo(videoId);
-        throw new Error("Session expired. Please analyze the video again.");
+      let context = "";
+      if (currentChatId && histories[currentChatId]) {
+        context = histories[currentChatId].context || "";
+      } else {
+        context = await this.analyzeVideo(videoId);
       }
-
-      conversation.messages.push({
-        role: "user",
-        content: message,
-      });
 
       const prompt = {
         text: `You are a helpful AI assistant analyzing a YouTube video.
-                Context: ${conversation.context}
-                
-                User question: ${message}
-                
-                Please provide a clear and concise answer based on the video content.
-                Format the response in a readable way using markdown.`,
+              Context: ${context}
+              
+              Previous messages: ${JSON.stringify(
+                histories[currentChatId]?.messages || []
+              )}
+              
+              User question: ${message}
+              
+              Please provide a clear and concise answer based on the video content.
+              Format the response in a readable way using markdown.`,
       };
 
       const response = await this.generateContent(prompt);
-
-      conversation.messages.push({
-        role: "assistant",
-        content: response,
-      });
-
-      await this.saveToStorage();
-
       return response;
     } catch (error) {
       console.error("Error in handleChatQuery:", error);
       throw error;
+    }
+  }
+
+  async getVideoTitle(videoId) {
+    try {
+      if (this.metadataCache.has(videoId)) {
+        return this.metadataCache.get(videoId).title;
+      }
+
+      const response = await fetch(
+        `${this.YOUTUBE_API_BASE_URL}/videos?part=snippet&id=${videoId}&key=${this.YOUTUBE_API_KEY}`
+      );
+      const data = await response.json();
+
+      if (data.items && data.items[0]) {
+        const title = data.items[0].snippet.title.trim();
+
+        this.metadataCache.set(videoId, { title });
+        return title;
+      }
+      return "Untitled Video";
+    } catch (error) {
+      console.error("Error fetching video title:", error);
+      return "Untitled Video";
     }
   }
 }
@@ -306,6 +325,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch((error) => {
         console.error("Chat error:", error);
         sendResponse({ error: error.message });
+      });
+    return true;
+  }
+
+  if (request.action === "getVideoTitle") {
+    console.log("Getting title for video:", request.videoId);
+    geminiAPI
+      .getVideoTitle(request.videoId)
+      .then((title) => {
+        sendResponse({ title });
+      })
+      .catch((error) => {
+        console.error("Error getting video title:", error);
+        sendResponse({ title: "Untitled Video" });
       });
     return true;
   }

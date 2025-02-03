@@ -35,6 +35,19 @@ function formatMarkdown(text) {
     );
 }
 
+async function getVideoTitle(videoId) {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: "getVideoTitle",
+      videoId: videoId,
+    });
+    return response.title || "Untitled Chat";
+  } catch (error) {
+    console.error("Error getting video title:", error);
+    return "Untitled Chat";
+  }
+}
+
 function addMessage(type, content) {
   const welcomeMessage = document.getElementById("welcome-message");
   if (welcomeMessage) {
@@ -55,33 +68,76 @@ function addMessage(type, content) {
     timestamp: new Date().toISOString(),
   });
 
-  const messageContent =
-    type === "error"
-      ? `<div class="bg-red-100 text-red-700 rounded-lg px-4 py-2 max-w-3/4">${content}</div>`
-      : `<div class="flex items-start space-x-3 ${
-          type === "user" ? "flex-row-reverse space-x-reverse" : ""
-        }">
-            ${
-              type === "assistant"
-                ? `
-                <div class="flex-shrink-0">
-                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                        </svg>
-                    </div>
-                </div>
-            `
-                : ""
-            }
-            <div class="${
-              type === "user" ? "message-user" : "message-assistant"
-            } prose prose-sm">${formattedContent}</div>
-          </div>`;
+  const messageContent = createMessageContent(type, formattedContent);
 
   messageDiv.innerHTML = messageContent;
   chatContainer.appendChild(messageDiv);
   chatContainer.scrollTop = chatContainer.scrollHeight;
+
+  chrome.storage.local.get(["chatHistories"], async (result) => {
+    const histories = result.chatHistories || {};
+    let currentChatId = sessionStorage.getItem("currentChatId");
+
+    if (!currentChatId || !histories[currentChatId]) {
+      const videoTitle = await getVideoTitle(currentVideoId);
+      let newTitle = videoTitle;
+
+      if (type === "assistant" && content.includes("Video Analysis")) {
+        let chatNumber = 1;
+        const existingChats = Object.values(histories)
+          .filter((chat) => chat.videoId === currentVideoId)
+          .map((chat) => chat.title);
+
+        while (existingChats.includes(newTitle)) {
+          chatNumber++;
+          newTitle = `${videoTitle} (${chatNumber})`;
+        }
+
+        currentChatId = `${currentVideoId}_${Date.now()}`;
+      } else {
+        currentChatId = `${currentVideoId}_${Date.now()}`;
+        if (currentVideoId) {
+          newTitle = `${videoTitle} - Chat`;
+        } else {
+          newTitle = "New Chat";
+        }
+      }
+
+      histories[currentChatId] = {
+        title: newTitle,
+        timestamp: new Date().toISOString(),
+        messages: [
+          {
+            type,
+            content,
+            timestamp: new Date().toISOString(),
+          },
+        ],
+        videoId: currentVideoId,
+        context:
+          type === "assistant" && content.includes("Video Analysis")
+            ? content
+            : null,
+      };
+
+      sessionStorage.setItem("currentChatId", currentChatId);
+    } else {
+      if (!histories[currentChatId].messages) {
+        histories[currentChatId].messages = [];
+      }
+
+      histories[currentChatId].messages.push({
+        type,
+        content,
+        timestamp: new Date().toISOString(),
+      });
+
+      histories[currentChatId].timestamp = new Date().toISOString();
+    }
+
+    await chrome.storage.local.set({ chatHistories: histories });
+    updateChatHistoryList();
+  });
 }
 
 function showThinkingIndicator() {
@@ -232,26 +288,6 @@ function toggleExportDropdown() {
   dropdown.classList.toggle("hidden");
 }
 
-function waitForHtml2pdf() {
-  return new Promise((resolve, reject) => {
-    let attempts = 0;
-    const maxAttempts = 10;
-
-    const checkHtml2pdf = () => {
-      if (typeof html2pdf !== "undefined") {
-        resolve();
-      } else if (attempts >= maxAttempts) {
-        reject(new Error("html2pdf failed to load"));
-      } else {
-        attempts++;
-        setTimeout(checkHtml2pdf, 500);
-      }
-    };
-
-    checkHtml2pdf();
-  });
-}
-
 function exportToPDF() {
   try {
     if (chatHistory.length === 0) {
@@ -307,7 +343,6 @@ function exportToPDF() {
       .toISOString()
       .slice(0, 10)}.pdf`;
     doc.save(filename);
-    // addMessage("system", "PDF exported successfully!");
   } catch (error) {
     console.error("PDF generation error:", error);
     addMessage("error", "Failed to generate PDF. Please try again.");
@@ -388,4 +423,226 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   setChatEnabled(false);
+
+  const sidebar = document.getElementById("sidebar");
+  const mainToggleButton = document.getElementById("main-toggle-sidebar");
+  const newChatButton = document.getElementById("new-chat");
+
+  const overlay = document.createElement("div");
+  overlay.className = "sidebar-overlay";
+  document.body.appendChild(overlay);
+
+  function toggleSidebar() {
+    sidebar.classList.toggle("collapsed");
+    overlay.classList.toggle("active");
+  }
+
+  if (mainToggleButton) {
+    mainToggleButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleSidebar();
+    });
+  }
+
+  overlay.addEventListener("click", toggleSidebar);
+
+  sidebar.classList.add("collapsed");
+
+  newChatButton.addEventListener("click", () => {
+    chatHistory = [];
+    currentVideoId = null;
+
+    chatContainer.innerHTML = `
+      <!-- Welcome Message -->
+      <div id="welcome-message" class="flex flex-col items-center justify-center h-full text-center">
+        <div class="mb-8 mx-auto text-center">
+          <img
+            src="icons/logo.webp"
+            alt="YouTube Analyzer"
+            class="w-32 h-32 rounded-full shadow-lg mb-6 mx-auto"
+          />
+          <h2 class="text-2xl font-bold text-gray-800 mb-3">
+            Welcome to YTAssist AI!
+          </h2>
+          <p class="text-gray-600 max-w-md mx-auto">
+            Navigate to any YouTube video and click "Analyze" to start
+            exploring insights powered by Gemini AI.
+          </p>
+        </div>
+        <div class="animate-bounce">
+          <svg
+            class="w-6 h-6 text-blue-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 14l-7 7m0 0l-7-7m7 7V3"
+            ></path>
+          </svg>
+        </div>
+      </div>
+    `;
+
+    setChatEnabled(false);
+
+    const newChatId = Date.now().toString();
+    chrome.storage.local.get(["chatHistories"], (result) => {
+      const histories = result.chatHistories || {};
+      histories[newChatId] = {
+        title: "New Chat",
+        timestamp: new Date().toISOString(),
+        messages: [],
+        videoId: null,
+      };
+
+      chrome.storage.local.set({ chatHistories: histories }, () => {
+        updateChatHistoryList();
+      });
+    });
+
+    toggleSidebar();
+  });
+
+  document.querySelectorAll(".chat-history-item").forEach((item) => {
+    item.addEventListener("click", () => {
+      const chatId = item.getAttribute("data-chat-id");
+      console.log(
+        "Loading chat history:",
+        item.querySelector("h3").textContent
+      );
+
+      loadChatHistory(chatId);
+
+      toggleSidebar();
+    });
+  });
+
+  if (newChatButton) {
+    newChatButton.addEventListener("click", createNewChat);
+  }
+
+  updateChatHistoryList();
 });
+
+function loadChatHistory(chatId) {
+  chatContainer.innerHTML = "";
+
+  chrome.storage.local.get(["chatHistories"], (result) => {
+    const histories = result.chatHistories || {};
+    const selectedChat = histories[chatId];
+
+    if (selectedChat) {
+      currentVideoId = selectedChat.videoId;
+      chatHistory = selectedChat.messages || [];
+      sessionStorage.setItem("currentChatId", chatId);
+
+      setChatEnabled(!!selectedChat.videoId);
+
+      if (selectedChat.messages && selectedChat.messages.length > 0) {
+        selectedChat.messages.forEach((message) => {
+          const messageDiv = document.createElement("div");
+          messageDiv.className = `message-container flex justify-${
+            message.type === "user" ? "end" : "start"
+          } animate-slideIn`;
+
+          let formattedContent =
+            message.type === "assistant"
+              ? formatMarkdown(message.content)
+              : message.content;
+
+          const messageContent = createMessageContent(
+            message.type,
+            formattedContent
+          );
+          messageDiv.innerHTML = messageContent;
+          chatContainer.appendChild(messageDiv);
+        });
+
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    }
+  });
+}
+
+function updateChatHistoryList() {
+  const historyContainer = document.querySelector(".p-2.space-y-2");
+
+  chrome.storage.local.get(["chatHistories"], (result) => {
+    const histories = result.chatHistories || {};
+
+    const sortedChats = Object.entries(histories).sort(
+      ([, a], [, b]) => new Date(b.timestamp) - new Date(a.timestamp)
+    );
+
+    historyContainer.innerHTML = sortedChats
+      .map(
+        ([chatId, chat]) => `
+        <div class="p-3 hover:bg-gray-100 rounded-lg cursor-pointer chat-history-item" data-chat-id="${chatId}">
+          <h3 class="font-medium text-gray-800 truncate">
+            ${chat.title || "Untitled Chat"}
+          </h3>
+          <p class="text-sm text-gray-500">
+            ${new Date(chat.timestamp).toLocaleString()}
+          </p>
+        </div>
+      `
+      )
+      .join("");
+
+    document.querySelectorAll(".chat-history-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        const chatId = item.getAttribute("data-chat-id");
+        loadChatHistory(chatId);
+        toggleSidebar();
+      });
+    });
+  });
+}
+
+function createNewChat() {
+  chatContainer.innerHTML = "";
+  chatHistory = [];
+  currentVideoId = null;
+  sessionStorage.removeItem("currentChatId");
+
+  chatContainer.innerHTML = `
+    <div id="welcome-message" class="text-center p-8 text-gray-500">
+      <h2 class="text-xl font-semibold mb-4">Welcome to YouTube Video Analyzer</h2>
+      <p class="mb-4">Navigate to a YouTube video and click "Analyze Video" to get started.</p>
+      <div class="animate-bounce">
+        <svg class="w-6 h-6 text-blue-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+        </svg>
+      </div>
+    </div>
+  `;
+
+  setChatEnabled(false);
+}
+
+function createMessageContent(type, content) {
+  return type === "error"
+    ? `<div class="bg-red-100 text-red-700 rounded-lg px-4 py-2 max-w-3/4">${content}</div>`
+    : `<div class="flex items-start space-x-3 ${
+        type === "user" ? "flex-row-reverse space-x-reverse" : ""
+      }">
+          ${
+            type === "assistant"
+              ? `<div class="flex-shrink-0">
+                  <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
+                  </div>
+                </div>`
+              : ""
+          }
+          <div class="${
+            type === "user" ? "message-user" : "message-assistant"
+          } prose prose-sm">${content}</div>
+        </div>`;
+}
