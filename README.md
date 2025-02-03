@@ -43,7 +43,7 @@ YTAssist AI is a powerful Chrome extension that leverages Google's Gemini AI to 
 
 1. Clone the repository:
 bash
-git clone https://github.com/nithin-develop/ytassist-ai.git
+git clone https://github.com/nithin-developer/ytassist-ai.git
 
 2. Navigate to `chrome://extensions/` in Chrome
 3. Enable "Developer mode"
